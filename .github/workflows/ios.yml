@@ -28,8 +28,8 @@ jobs:
       - name: Install CocoaPods dependencies
         working-directory: era_mobile_app/ios
         run: |
-          bundle install
-          bundle exec pod install --repo-update
+          pod --version
+          pod install
 
       # Подписные секреты (опционально): CERTIFICATE_P12_BASE64 + KEYCHAIN_PASSWORD +
       # BUILD_PROVISION_PROFILE_BASE64. Без них собираем unsigned.
