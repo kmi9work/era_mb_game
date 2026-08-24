@@ -1,0 +1,1 @@
+/home/mic/learn/era/era_mb_game/era_mobile_app/android/app/build/intermediates/cxx/RelWithDebInfo/5p9q501s/obj/x86_64

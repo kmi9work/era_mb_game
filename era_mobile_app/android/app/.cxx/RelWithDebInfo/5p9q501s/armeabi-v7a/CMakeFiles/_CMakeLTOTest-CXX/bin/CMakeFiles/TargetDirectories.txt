@@ -1,0 +1,4 @@
+/home/mic/learn/era/era_mb_game/era_mobile_app/android/app/.cxx/RelWithDebInfo/5p9q501s/armeabi-v7a/CMakeFiles/_CMakeLTOTest-CXX/bin/CMakeFiles/foo.dir
+/home/mic/learn/era/era_mb_game/era_mobile_app/android/app/.cxx/RelWithDebInfo/5p9q501s/armeabi-v7a/CMakeFiles/_CMakeLTOTest-CXX/bin/CMakeFiles/boo.dir
+/home/mic/learn/era/era_mb_game/era_mobile_app/android/app/.cxx/RelWithDebInfo/5p9q501s/armeabi-v7a/CMakeFiles/_CMakeLTOTest-CXX/bin/CMakeFiles/edit_cache.dir
+/home/mic/learn/era/era_mb_game/era_mobile_app/android/app/.cxx/RelWithDebInfo/5p9q501s/armeabi-v7a/CMakeFiles/_CMakeLTOTest-CXX/bin/CMakeFiles/rebuild_cache.dir

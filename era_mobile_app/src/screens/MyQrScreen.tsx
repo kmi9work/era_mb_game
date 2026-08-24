@@ -1,6 +1,7 @@
 import React, {useEffect, useRef} from 'react';
-import {View, Text, StyleSheet, AppState} from 'react-native';
-import * as Brightness from 'react-native-brightness'; // см. README: нативный модуль яркости
+import {View, Text, StyleSheet} from 'react-native';
+// Яркость экрана: нативный модуль подключается на этапе нативной сборки (v2);
+// в каркасе не используем сторонних пакетов.
 import {colors, typography, spacing} from '../theme';
 import {useAuth} from '../auth/AuthContext';
 
@@ -10,25 +11,8 @@ import {useAuth} from '../auth/AuthContext';
  * через <QRCode> компонент — зависимость в package.json).
  */
 export function MyQrScreen() {
-  const restoreBrightness = useRef<number | null>(null);
-
   useEffect(() => {
-    // Временно повышаем яркость на время показа QR (ТЗ FR-10)
-    Brightness?.getBrightness?.().then((v: number) => {
-      restoreBrightness.current = v;
-      Brightness.setBrightness(1);
-    }).catch(() => {});
-    const sub = AppState.addEventListener('change', state => {
-      if (state !== 'active' && restoreBrightness.current !== null) {
-        Brightness.setBrightness(restoreBrightness.current).catch(() => {});
-      }
-    });
-    return () => {
-      sub.remove();
-      if (restoreBrightness.current !== null) {
-        Brightness.setBrightness(restoreBrightness.current).catch(() => {});
-      }
-    };
+    // FR-10: временно повышать яркость — подключить нативный модуль при нативной сборке
   }, []);
 
   const {player} = useAuth();
