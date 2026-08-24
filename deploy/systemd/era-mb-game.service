@@ -11,6 +11,8 @@ WorkingDirectory=/opt/era/era_mb_game/current
 Environment=RAILS_ENV=production
 Environment=PATH=/home/deploy/.rbenv/shims:/home/deploy/.rbenv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 EnvironmentFile=/opt/era/era_mb_game/shared/era_mb_game.env
+# puma.rb читает PORT (не PUMA_PORT); 3000 занят epoha back0
+Environment=PORT=3001
 
 ExecStart=/home/deploy/.rbenv/bin/rbenv exec bundle exec puma -C /opt/era/era_mb_game/current/config/puma.rb
 Restart=always

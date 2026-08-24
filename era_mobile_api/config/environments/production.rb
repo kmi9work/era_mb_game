@@ -84,3 +84,9 @@ Rails.application.configure do
   # Do not dump schema after migrations.
   config.active_record.dump_schema_after_migration = false
 end
+
+# Era mobile: разрешаем WebSocket-подключения приложения и RN-клиентов
+config.action_cable.allowed_request_origins = [
+  %r{https://era-mb-game\.igroteh\.su},
+  %r{http://era-mb-game\.igroteh\.su}
+]
