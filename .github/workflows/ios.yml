@@ -35,9 +35,13 @@ jobs:
       - name: Install CocoaPods dependencies
         working-directory: era_mobile_app/ios
         run: |
+          set -x
+          gem environment
           bundle config set deployment false
-          bundle install
-          bundle exec pod install --repo-update
+          bundle install || true   # не блокировать сборку на ошибках bundler — pod ставится ниже
+          which pod || sudo gem install cocoapods --no-document
+          pod --version
+          pod install --repo-update
 
       # Подписные секреты (опционально): CERTIFICATE_P12_BASE64 + KEYCHAIN_PASSWORD +
       # BUILD_PROVISION_PROFILE_BASE64. Без них собираем unsigned.
