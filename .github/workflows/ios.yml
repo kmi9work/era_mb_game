@@ -1,0 +1,94 @@
+name: ios-ipa
+
+# Сборка IPA на macOS-раннере. Без сертификатов — unsigned IPA
+# (для дистрибуции внутри команды/через AltStore); с секретами — подписанный.
+on:
+  push:
+    branches: [main]
+    paths: ["era_mobile_app/**", ".github/workflows/ios.yml"]
+    tags: ["v*"]
+  workflow_dispatch:
+
+jobs:
+  ipa:
+    runs-on: macos-14
+    if: \${{ hashFiles('era_mobile_app/ios/EraMobileApp.xcodeproj/project.pbxproj') != '' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install JS dependencies
+        working-directory: era_mobile_app
+        run: npm ci --no-audit --no-fund || npm install --no-audit --no-fund
+
+      - name: Install CocoaPods dependencies
+        working-directory: era_mobile_app/ios
+        run: |
+          bundle install
+          bundle exec pod install --repo-update
+
+      # Подписные секреты (опционально): CERTIFICATE_P12_BASE64 + KEYCHAIN_PASSWORD +
+      # BUILD_PROVISION_PROFILE_BASE64. Без них собираем unsigned.
+      - name: Install signing certificate & profile
+        env:
+          CERT_B64: \${{ secrets.CERTIFICATE_P12_BASE64 }}
+        if: \${{ env.CERT_B64 != '' }}
+        run: |
+          CERT_PATH=$RUNNER_TEMP/cert.p12
+          PP_PATH=$RUNNER_TEMP/profile.mobileprovision
+          echo "$CERT_B64" | base64 -d > "$CERT_PATH"
+          echo "\${{ secrets.BUILD_PROVISION_PROFILE_BASE64 }}" | base64 -d > "$PP_PATH"
+
+          security create-keychain -p "" build.keychain
+          security set-keychain-settings -lut 21600 build.keychain
+          security unlock-keychain -p "" build.keychain
+          security import "$CERT_PATH" -P "\${{ secrets.P12_PASSWORD }}" -A -t cert -f pkcs12 -k build.keychain
+          security set-key-partition-list -S apple-tool:,apple: -k "" build.keychain
+          security list-keychain -d user -s build.keychain
+
+          UUID=$(/usr/libexec/PlistBuddy -c 'Print :UUID' /dev/stdin <<< \
+            "$(security cms -D -i "$PP_PATH")")
+          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+          cp "$PP_PATH" ~/Library/MobileDevice/Provisioning\ Profiles/$UUID.mobileprovision
+
+      - name: Build archive
+        working-directory: era_mobile_app/ios
+        run: |
+          SCHEME=EraMobileApp
+          if [ -d "EraMobileApp.xcworkspace" ]; then
+            PROJECT_ARGS=(-workspace "EraMobileApp.xcworkspace")
+          else
+            PROJECT_ARGS=(-project "EraMobileApp.xcodeproj")
+          fi
+
+          xcodebuild "${PROJECT_ARGS[@]}" \
+            -scheme "$SCHEME" \
+            -configuration Release \
+            -sdk iphoneos \
+            -derivedDataPath build \
+            archive -archivePath build/EraMobileApp.xcarchive
+
+      - name: Export IPA
+        working-directory: era_mobile_app/ios
+        run: |
+          APP_PATH=$(find build -type d -name "*.app" | head -1)
+          mkdir -p Payload
+          cp -R "$APP_PATH" Payload/
+          zip -r ../EraMobileApp-${GITHUB_REF_NAME}.ipa Payload -x "*.DS_Store"
+          mkdir -p ../dist && mv ../EraMobileApp-*.ipa ../dist/
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ipa-\${{ github.ref_name }}
+          path: era_mobile_app/dist/*.ipa
+          retention-days: 30
+
+      - name: Attach to GitHub Release (тег v*)
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: era_mobile_app/dist/*.ipa

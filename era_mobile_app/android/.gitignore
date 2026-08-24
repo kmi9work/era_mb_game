@@ -1,0 +1,14 @@
+# Built application files
+*.apk
+*.aab
+build/
+
+# Gradle
+.gradle/
+
+# Local config
+local.properties
+
+# Keystores: release-keystore НЕ храним в git (только CI secrets).
+# debug.keystore коммитим сознательно — им подписывается fallback-сборка без секретов.
+release.keystore

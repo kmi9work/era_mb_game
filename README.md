@@ -95,3 +95,34 @@ bundle exec rspec          # 59 примеров: транзакции, гонк
   фиксация цен при отправке или обработке (`caravan_price_fixing`).
 - **Технологии**: «Сельские школы» → апгрейды; «Технические училища» ×1.5;
   «Ремесловые люди» → кузница/ювелирка; «Заморская торговля» → игнор эмбарго.
+
+## CI-сборки APK/IPA (GitHub Actions)
+
+| Workflow | Что делает | Когда |
+|---|---|---|
+| `.github/workflows/android.yml` | `assembleRelease` → артефакт APK; по тегу `v*` — ещё и GitHub Release | пуш в main (пути `era_mobile_app/**`), теги, ручной запуск |
+| `.github/workflows/ios.yml` | pod install + xcodebuild archive → unsigned IPA в артефакты; по тегу `v*` — Release | те же события, runner macos-14 |
+| `.github/workflows/backend.yml` | rspec на postgres 16 + redis | пуш/PR по `era_mobile_api/**` |
+
+### Подпись Android (опционально)
+
+Без секретов APK подписывается debug-ключом (коммитится в репо) — ставится на
+устройство напрямую, что соответствует ТЗ разд. 4. Для release-подписи добавьте
+Secrets репозитория:
+
+- `ANDROID_KEYSTORE_BASE64` — base64 вашего keystore: `base64 -w0 my-release.keystore`
+- `ANDROID_KEYSTORE_PASSWORD`
+- `ANDROID_KEY_ALIAS`
+- `ANDROID_KEY_PASSWORD` (если отличается от store password)
+
+### Подпись iOS (опционально)
+
+Без секретов собирается **unsigned IPA** (Payload/*.app в zip) — подходит для
+дистрибуции через AltStore/Sideloadly или Xcode у себя. Для подписанной сборки:
+
+- `CERTIFICATE_P12_BASE64` — сертификат распространения (Apple Distribution)
+- `P12_PASSWORD`
+- `BUILD_PROVISION_PROFILE_BASE64` — provisioning profile
+
+Для App Store/TestFlight нужен аккаунт разработчика и отдельный шаг
+`xcrun altool`/`notarytool` — добавляется после получения учётных данных.

@@ -1,0 +1,68 @@
+name: android-apk
+
+# Сборка APK: на каждый пуш в main (артефакт) и по тегу v* (GitHub Release).
+on:
+  push:
+    branches: [main]
+    paths: ["era_mobile_app/**", ".github/workflows/android.yml"]
+    tags: ["v*"]
+  workflow_dispatch:
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    # Не падать, пока в репозитории нет нативного android/-проекта
+    if: ${{ hashFiles('era_mobile_app/android/settings.gradle') != '' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Install JS dependencies
+        working-directory: era_mobile_app
+        run: npm ci --no-audit --no-fund || npm install --no-audit --no-fund
+
+      - name: Restore release keystore from secrets
+        env:
+          KS_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        if: ${{ env.KS_B64 != '' }}
+        run: |
+          echo "$KS_B64" | base64 -d > era_mobile_app/android/app/release.keystore
+          {
+            echo "KEYSTORE_FILE=${{ github.workspace }}/era_mobile_app/android/app/release.keystore"
+            echo "KEYSTORE_PASSWORD=${{ secrets.ANDROID_KEYSTORE_PASSWORD }}"
+            echo "KEY_ALIAS=${{ secrets.ANDROID_KEY_ALIAS }}"
+            echo "KEY_PASSWORD=${{ secrets.ANDROID_KEY_PASSWORD }}"
+          } >> "$GITHUB_ENV"
+
+      - name: Gradle assembleRelease
+        working-directory: era_mobile_app/android
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleRelease --no-daemon
+
+      - name: Collect APK
+        run: |
+          mkdir -p era_mobile_app/dist
+          cp era_mobile_app/android/app/build/outputs/apk/release/app-release.apk \
+             "era_mobile_app/dist/EraMobileApp-${{ github.ref_name }}.apk"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: apk-${{ github.ref_name }}
+          path: era_mobile_app/dist/*.apk
+          retention-days: 30
+
+      - name: Attach to GitHub Release (тег v*)
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: era_mobile_app/dist/*.apk

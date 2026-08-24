@@ -1,0 +1,9 @@
+# CocoaPods
+Pods/
+
+# Xcode build products
+**/xcuserdata/
+DerivedData/
+*.xcuserstate
+
+.bundle/
