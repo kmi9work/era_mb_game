@@ -25,10 +25,17 @@ jobs:
         working-directory: era_mobile_app
         run: npm ci --no-audit --no-fund || npm install --no-audit --no-fund
 
+      - name: Show environment versions
+        run: |
+          sw_vers
+          xcodebuild -version
+          ruby -v
+          gem list cocoapods
+
       - name: Install CocoaPods dependencies
         working-directory: era_mobile_app/ios
         run: |
-          sudo gem install cocoapods --no-document || gem install cocoapods --user-install --no-document
+          sudo gem install cocoapods --no-document
           pod install --repo-update
 
       # Подписные секреты (опционально): CERTIFICATE_P12_BASE64 + KEYCHAIN_PASSWORD +
