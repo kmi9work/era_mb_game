@@ -1,0 +1,24 @@
+default: &default
+  adapter: postgresql
+  encoding: unicode
+  host: localhost
+  username: deploy
+  password: gfhjkm
+  pool: <%= ENV.fetch("RAILS_MAX_THREADS") { 10 } %>
+
+# Единая база с eraofchange (ТЗ 5.1).
+# ВАЖНО: era_mobile_api владеет только таблицами mb_* (ТЗ 6.2, правило миграций).
+development:
+  <<: *default
+  database: <%= ENV.fetch("ERA_MB_DATABASE", "era_buggy") %>
+
+test:
+  <<: *default
+  # Тесты изолированы от общей базы (см. spec/support/shared_schema.rb)
+  database: era_mobile_api_test
+
+production:
+  <<: *default
+  database: <%= ENV.fetch("ERA_MB_DATABASE", "eraofchange_production") %>
+  username: <%= ENV.fetch("ERA_MB_DB_USER", "deploy") %>
+  password: <%= ENV["ERA_MB_DB_PASSWORD"] %>

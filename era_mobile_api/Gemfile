@@ -1,0 +1,45 @@
+source "https://rubygems.org"
+git_source(:github) { |repo| "https://github.com/#{repo}.git" }
+
+ruby "3.2.2"
+
+# Версия Rails как у eraofchange (см. ТЗ 5.1)
+gem "rails", "~> 7.0.7"
+
+# Единая база с eraofchange
+gem "pg", "~> 1.1"
+
+gem "puma", ">= 5.0"
+
+# Realtime: торговые сессии и лобби (ТЗ 5.1). Async в dev/test, redis в prod.
+gem "redis", "~> 4.8"
+
+# CORS для RN-клиента (dev: metro/эмулятор)
+gem "rack-cors"
+
+# Фоновые джобы обработки караванов
+gem "sidekiq", "~> 7.2"
+
+# Пуши FCM (APNs — через релей, см. README)
+gem "googleauth", "~> 1.11"
+gem "httparty"
+
+# QR-идентификаторы: HMAC-подпись на сервере; генерация PNG для печати мастерами
+gem "rqrcode", "~> 2.2"
+
+group :development, :test do
+  gem "debug", platforms: %i[ mri mingw x64_mingw ]
+  gem "rspec-rails", "~> 6.1"
+  gem "factory_bot_rails"
+end
+
+group :development do
+  gem "listen", "~> 3.9"
+end
+
+group :test do
+  # Изоляция тестов без отдельного test-бейка
+  gem "sqlite3", "~> 1.5"
+end
+
+gem "tzinfo-data", platforms: %i[ mingw mswin x64_mingw jruby ]

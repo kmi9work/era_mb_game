@@ -1,0 +1,9 @@
+node_modules/
+.npm/
+ios/Pods/
+android/app/build/
+android/build/
+*.iml
+.idea/
+.bundle/
+vendor/bundle/
