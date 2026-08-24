@@ -1,3 +1,4 @@
+# Era Mobile API routes
 Rails.application.routes.draw do
   mount ActionCable.server => "/cable"
 
