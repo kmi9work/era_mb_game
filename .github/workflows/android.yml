@@ -11,6 +11,8 @@ on:
 jobs:
   apk:
     runs-on: ubuntu-latest
+    env:
+      HAS_KEYSTORE: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' }}
     steps:
       - uses: actions/checkout@v4
 
@@ -30,7 +32,7 @@ jobs:
       - name: Restore release keystore from secrets
         env:
           KS_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
-        if: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' }}
+        if: ${{ env.HAS_KEYSTORE == 'true' }}
         run: |
           echo "$KS_B64" | base64 -d > era_mobile_app/android/app/release.keystore
           {

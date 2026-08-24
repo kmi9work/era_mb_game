@@ -12,6 +12,8 @@ on:
 jobs:
   ipa:
     runs-on: macos-14
+    env:
+      HAS_CERT: ${{ secrets.CERTIFICATE_P12_BASE64 != '' }}
     steps:
       - uses: actions/checkout@v4
 
@@ -34,7 +36,7 @@ jobs:
       - name: Install signing certificate & profile
         env:
           CERT_B64: ${{ secrets.CERTIFICATE_P12_BASE64 }}
-        if: ${{ secrets.CERTIFICATE_P12_BASE64 != '' }}
+        if: ${{ env.HAS_CERT == 'true' }}
         run: |
           CERT_PATH=$RUNNER_TEMP/cert.p12
           PP_PATH=$RUNNER_TEMP/profile.mobileprovision
