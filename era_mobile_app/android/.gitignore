@@ -12,3 +12,6 @@ local.properties
 # Keystores: release-keystore НЕ храним в git (только CI secrets).
 # debug.keystore коммитим сознательно — им подписывается fallback-сборка без секретов.
 release.keystore
+app/.cxx/
+app/build/
+.cxx/
