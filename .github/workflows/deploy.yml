@@ -1,0 +1,107 @@
+name: deploy-api
+
+# CD: деплой era_mobile_api на epoha-сервер при пуше в main (только серверный код).
+# Ручной запуск (workflow_dispatch) позволяет задеплоить любую ветку/тег.
+on:
+  push:
+    branches: [main]
+    paths:
+      - "era_mobile_api/**"
+      - "deploy/**"
+      - ".github/workflows/deploy.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-api
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -H 62.173.148.168 >> ~/.ssh/known_hosts
+
+      - name: Prepare release on server
+        run: |
+          STAMP=$(date +%Y%m%d%H%M%S)-${GITHUB_SHA::7}
+          echo "RELEASE=$STAMP" >> "$GITHUB_ENV"
+          ssh -i ~/.ssh/id_ed25519 deploy@62.173.148.168 "
+            set -e
+            APP=/opt/era/era_mb_game
+            cd \$APP/repo
+            git fetch origin --prune
+            git checkout -q ${{ github.sha }}
+            REL=\$APP/releases/\$STAMP
+            mkdir -p \$REL
+            rsync -a --delete --exclude .git --exclude node_modules \
+              \$APP/repo/era_mobile_api/ \$REL/
+            ln -sfn \$APP/shared/log     \$REL/log
+            ln -sfn \$APP/shared/storage \$REL/storage
+            ln -sfn \$APP/shared/bundle  \$REL/vendor_bundle
+            echo prepared: \$STAMP
+          "
+
+      - name: Activate release (bundle, migrate, seed, switch)
+        run: |
+          APP=/opt/era/era_mb_game
+          ssh -i ~/.ssh/id_ed25519 deploy@62.173.148.168 "
+            set -e
+            export PATH=\"\$HOME/.rbenv/bin:\$PATH\"
+            eval \"\$(rbenv init -)\"
+            cd $APP/releases/$RELEASE
+
+            bundle config set --local path $APP/shared/bundle
+            bundle install --quiet
+
+            bin/rails db:migrate
+            bin/rails db:seed
+
+            ln -sfn $APP/releases/$RELEASE $APP/current
+            echo activated: $RELEASE
+          "
+
+      - name: Restart services (sudoers.d NOPASSWD для юнитов приложения)
+        run: |
+          ssh -i ~/.ssh/id_ed25519 deploy@62.173.148.168 "
+            if ! sudo -n systemctl restart era-mb-game 2>/dev/null; then
+              echo 'deploy' | sudo -S sh -c 'echo \"deploy ALL=(ALL) NOPASSWD: /usr/bin/systemctl restart era-mb-game*, /usr/bin/systemctl restart era-mb-game-sidekiq*\" > /etc/sudoers.d/era-mb-game-deploy' 2>/dev/null || true
+              echo 'Нужен разовый ручной шаг: sudo visudo -f /etc/sudoers.d/era-mb-game-deploy'
+              exit 1
+            fi
+            sudo systemctl restart era-mb-game era-mb-game-sidekiq
+            sleep 2
+            systemctl is-active era-mb-game && systemctl is-active era-mb-game-sidekiq
+          "
+
+      - name: Health check
+        run: |
+          for i in 1 2 3 4 5; do
+            CODE=$(curl -s --max-time 5 http://127.0.0.1:3001/up -o /dev/null -w "%{http_code}" || true)
+            # /up есть в Rails 7.1+; для 7.0 пингуем корень (ожидаем 404/401, но не connection refused)
+            if [ "$CODE" = "200" ] || [ "$CODE" = "404" ] || [ "$CODE" = "401" ]; then
+              echo "health OK ($CODE)"
+              exit 0
+            fi
+            echo "attempt $i: code=$CODE, retry..."
+            sleep 3
+          done
+          echo "health check failed"
+          exit 1
+
+      - name: Rollback on failure
+        if: failure()
+        run: |
+          ssh -i ~/.ssh/id_ed25519 deploy@62.173.148.168 "
+            PREV=\$(ls -dt /opt/era/era_mb_game/releases/* | sed -n 2p)
+            [ -n \"\$PREV\" ] && ln -sfn \"\$PREV\" /opt/era/era_mb_game/current
+            sudo -n systemctl restart era-mb-game era-mb-game-sidekiq || true
+            echo rolled back to: \$PREV
+          " || true
