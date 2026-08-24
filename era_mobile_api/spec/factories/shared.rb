@@ -47,6 +47,9 @@ FactoryBot.define do
 
   factory :plant_type, class: "Shared::PlantType" do
     sequence(:name) { |n| "Тип #{n}" }
+    # Явные ids у типов из демо-сидов (1..13); фабричные — начиная со 100,
+    # чтобы не попасть под tech_gate кузницы/ювелирки (FORGE=13, JEWELLER=10)
+    sequence(:id) { |n| n + 100 }
     plant_category factory: :plant_category_processing
   end
 
