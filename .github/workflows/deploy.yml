@@ -31,23 +31,10 @@ jobs:
 
       - name: Prepare release on server
         run: |
-          STAMP=$(date +%Y%m%d%H%M%S)-${GITHUB_SHA::7}
+          STAMP="$(date +%Y%m%d%H%M%S)-${GITHUB_SHA::7}"
           echo "RELEASE=$STAMP" >> "$GITHUB_ENV"
-          ssh -i ~/.ssh/id_ed25519 deploy@62.173.148.168 "
-            set -e
-            APP=/opt/era/era_mb_game
-            cd \$APP/repo
-            git fetch origin --prune
-            git checkout -q ${{ github.sha }}
-            REL=\$APP/releases/\$STAMP
-            mkdir -p \$REL
-            rsync -a --delete --exclude .git --exclude node_modules \
-              \$APP/repo/era_mobile_api/ \$REL/
-            ln -sfn \$APP/shared/log     \$REL/log
-            ln -sfn \$APP/shared/storage \$REL/storage
-            ln -sfn \$APP/shared/bundle  \$REL/vendor_bundle
-            echo prepared: \$STAMP
-          "
+          ssh -v -i ~/.ssh/id_ed25519 deploy@62.173.148.168 "set -e;             APP=/opt/era/era_mb_game;             cd \$APP/repo || exit 1;             git fetch origin --prune || exit 1;             git checkout -q ${GITHUB_SHA} || exit 1;             REL=\$APP/releases/\$STAMP;             mkdir -p \$REL;             rsync -a --delete --exclude .git --exclude node_modules \$APP/repo/era_mobile_api/ \$REL/ || exit 1;             ln -sfn \$APP/shared/log \$REL/log;             ln -sfn \$APP/shared/storage \$REL/storage;             ln -sfn \$APP/shared/bundle \$REL/vendor_bundle;             echo prepared: \$STAMP"
+
 
       - name: Activate release (bundle, migrate, seed, switch)
         run: |
