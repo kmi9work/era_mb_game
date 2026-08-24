@@ -28,8 +28,8 @@ jobs:
       - name: Install CocoaPods dependencies
         working-directory: era_mobile_app/ios
         run: |
-          pod --version
-          pod install
+          sudo gem install cocoapods --no-document || gem install cocoapods --user-install --no-document
+          pod install --repo-update
 
       # Подписные секреты (опционально): CERTIFICATE_P12_BASE64 + KEYCHAIN_PASSWORD +
       # BUILD_PROVISION_PROFILE_BASE64. Без них собираем unsigned.
