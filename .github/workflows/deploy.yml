@@ -27,8 +27,11 @@ jobs:
           mkdir -p ~/.ssh
           printf '%s\n' "${{ secrets.DEPLOY_SSH_KEY }}" | tr -d '\r' > ~/.ssh/id_ed25519
           chmod 600 ~/.ssh/id_ed25519
-          ssh-keyscan -H 62.173.148.168 >> ~/.ssh/known_hosts 2>/dev/null
-          ssh-keygen -y -f ~/.ssh/id_ed25519 > /dev/null && echo "KEY FORMAT OK"
+          ssh-keyscan -H 62.173.148.168 >> ~/.ssh/known_hosts 2>/dev/null || true
+          # Диагностика формата (не роняет шаг): первые строки ключа и fingerprint
+          head -1 ~/.ssh/id_ed25519 | sed 's/\(-----BEGIN [A-Z ]*\).*/\1.../'
+          ssh-keygen -yf ~/.ssh/id_ed25519 >/dev/null 2>&1 && echo "KEY FORMAT OK" \
+            || echo "KEY FORMAT BAD — секрет должен быть приватным ключом OpenSSH целиком"
 
       - name: Prepare release on server
         run: |
