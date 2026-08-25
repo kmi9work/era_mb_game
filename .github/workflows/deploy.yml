@@ -30,8 +30,12 @@ jobs:
           ssh-keyscan -H 62.173.148.168 >> ~/.ssh/known_hosts 2>/dev/null || true
           # Диагностика формата (не роняет шаг): первые строки ключа и fingerprint
           head -1 ~/.ssh/id_ed25519 | sed 's/\(-----BEGIN [A-Z ]*\).*/\1.../'
-          ssh-keygen -yf ~/.ssh/id_ed25519 >/dev/null 2>&1 && echo "KEY FORMAT OK" \
-            || echo "KEY FORMAT BAD — секрет должен быть приватным ключом OpenSSH целиком"
+          if ! ssh-keygen -yf ~/.ssh/id_ed25519 >/dev/null 2>&1; then
+            echo "::error::DEPLOY_SSH_KEY невалиден: секрет должен содержать приватный ключ OpenSSH целиком (-----BEGIN OPENSSH PRIVATE KEY----- ... -----END OPENSSH PRIVATE KEY-----), а не публичный (.pub) и не обрезанный"
+            head -c 60 ~/.ssh/id_ed25519 | sed 's/$/.../' >&2
+            exit 1
+          fi
+          echo "KEY FORMAT OK: $(ssh-keygen -lf ~/.ssh/id_ed25519)"
 
       - name: Prepare release on server
         run: |
