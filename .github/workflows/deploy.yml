@@ -46,6 +46,7 @@ jobs:
             rsync -a --delete --exclude .git --exclude node_modules $APP/repo/era_mobile_api/ "$REL/" || exit 1
             ln -sfn $APP/shared/log "$REL/log"
             ln -sfn $APP/shared/storage "$REL/storage"
+            mkdir -p "$REL/tmp" && rm -rf "$REL/tmp/pids" && ln -sfn $APP/shared/pids "$REL/tmp/pids"
             ln -sfn $APP/shared/bundle "$REL/vendor_bundle"
             printf %s "$REL" > /tmp/era_mb_current_rel
             echo "prepared: $REL"'
