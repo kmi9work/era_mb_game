@@ -22,6 +22,14 @@ export async function clearToken(): Promise<void> {
   await AsyncStorage.removeItem(TOKEN_KEY);
 }
 
+// Для нативных компонентов (например, <Image> с авторизованным URL)
+export async function getToken(): Promise<string | null> {
+  if (!authToken) {
+    await loadToken();
+  }
+  return authToken;
+}
+
 export const api: AxiosInstance = axios.create({
   baseURL: `${CONFIG.BACKEND_URL}`,
   timeout: 8000,

@@ -19,19 +19,6 @@ class CreateMbSchema < ActiveRecord::Migration[7.0]
     add_index :mb_sessions, :token_hash, unique: true
     add_index :mb_sessions, [:player_id, :status]
 
-    # ─── FR-1: персональные QR-идентификаторы (UUID + HMAC) ──────────────────
-    create_table :mb_id_tokens do |t|
-      t.references :player, null: false, index: true
-      t.string  :public_id, null: false     # UUID
-      t.string  :secret_digest, null: false # HMAC-SHA256(payload)
-      t.string  :payload_digest, null: false
-      t.integer :status, null: false, default: 0 # 0 active / 1 revoked (перегенерация)
-      t.datetime :revoked_at
-
-      t.timestamps
-    end
-    add_index :mb_id_tokens, :public_id, unique: true
-
     # ─── FR-11..FR-17: торговые сессии ───────────────────────────────────────
     create_table :mb_trade_sessions do |t|
       t.references :initiator, null: false

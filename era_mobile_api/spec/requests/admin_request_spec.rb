@@ -13,16 +13,6 @@ RSpec.describe "Admin API", type: :request do
       expect(JSON.parse(response.body)["players"].size).to be >= 1
     end
 
-    it "перегенерирует QR (старый отзывается)" do
-      player = create(:player)
-      old_token = Mb::IdToken.issue_for!(player)
-
-      post "/admin_api/players/#{player.id}/regen_qr", headers: master_headers
-      expect(response).to have_http_status(:ok)
-
-      expect(old_token.reload.status).to eq("revoked")
-    end
-
     it "требует мастер-ключ" do
       get "/admin_api/players", headers: { "X-Master-Key" => "wrong" }
       expect(response).to have_http_status(:unauthorized)

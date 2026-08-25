@@ -36,7 +36,6 @@ bundle exec sidekiq -C config/sidekiq.yml        # требует redis://localh
 | Переменная | Назначение |
 |---|---|
 | `MB_MASTER_KEY` | ключ админ-API для era_front (`X-Master-Key`) |
-| `MB_QR_SECRET` | HMAC-ключ QR-идентификаторов (по умолчанию secret_key_base) |
 | `TRADE_SESSION_TIMEOUT` | таймаут торговой сессии, сек (120) |
 | `REDIS_URL` | Redis для Sidekiq/ActionCable в проде |
 | `FCM_PROJECT_ID`, `FCM_SERVICE_ACCOUNT_JSON` | пуши FCM |
@@ -47,7 +46,6 @@ bundle exec sidekiq -C config/sidekiq.yml        # требует redis://localh
 Заголовок `X-Master-Key: $MB_MASTER_KEY`.
 
 - `GET /admin_api/players` — игроки, активные устройства
-- `POST /admin_api/players/:id/regen_qr` — перегенерация QR
 - `DELETE /admin_api/sessions/:id` — принудительный логаут
 - `GET /admin_api/trade_sessions` — мониторинг торговли live
 - `GET /admin_api/operations?player_id=&kind=&year=` — журнал с фильтрами

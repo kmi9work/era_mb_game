@@ -43,7 +43,7 @@ GitHub (main) ──push──▶ GitHub Actions
 - [x] Клон репо: `/opt/era/era_mb_game/repo`
 - [x] База: `createdb era_mb_game_production`, пароль роли deploy выставлен
 - [x] env-файл: `/opt/era/era_mb_game/shared/era_mb_game.env`
-      (SECRET_KEY_BASE, MB_MASTER_KEY, MB_QR_SECRET — сгенерированы openssl;
+      (SECRET_KEY_BASE, MB_MASTER_KEY — сгенерированы openssl;
       шаблон: deploy/era_mb_game.env.example)
 - [x] systemd-юниты: deploy/systemd/*.service -> /etc/systemd/system/
 - [x] nginx HTTP-конфиг + ACME; HTTPS — после выпуска сертификата certbot'ом

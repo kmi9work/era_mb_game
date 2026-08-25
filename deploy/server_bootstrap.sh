@@ -19,10 +19,8 @@ ssh -i "$KEY" "$HOST" "
   if [ ! -f $APP/shared/era_mb_game.env ]; then
     SKB=\$(openssl rand -hex 64)
     MK=\$(openssl rand -hex 32)
-    QS=\$(openssl rand -hex 32)
     sed -e \"s/CHANGE_ME_secret_key_base/\$SKB/\" \
         -e \"s/CHANGE_ME_master_key/\$MK/\" \
-        -e \"s/CHANGE_ME_qr_secret/\$QS/\" \
         > $APP/shared/era_mb_game.env <<'ENVEOF'
 RAILS_ENV=production
 RAILS_LOG_TO_STDOUT=1
@@ -31,7 +29,6 @@ ERA_MB_DB_USER=deploy
 ERA_MB_DB_PASSWORD=gfhjkm
 SECRET_KEY_BASE=__SKB__
 MB_MASTER_KEY=__MK__
-MB_QR_SECRET=__QS__
 TRADE_SESSION_TIMEOUT=120
 REDIS_URL=redis://localhost:6379/2
 PUMA_PORT=3001

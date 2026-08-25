@@ -1,5 +1,5 @@
 import React, {useState} from 'react';
-import {StyleSheet} from 'react-native';
+import {View, Text, StyleSheet} from 'react-native';
 import {StackNavigationProp} from '@react-navigation/stack';
 import {createTradeSession} from '../api/endpoints';
 import {QrScannerScreen} from './QrScannerScreen';
@@ -9,22 +9,39 @@ type Props = {navigation: StackNavigationProp<any>};
 
 /**
  * FR-11: скан QR игрока B -> создание торговой сессии.
+ * QR генерирует era_front /players: {"type":"player_auth","identificator":...}.
  * Отказ с причиной: «игрок офлайн», «занят другой сделкой» (сервер).
  */
+interface QrPayload {
+  identificator?: unknown;
+  player_name?: string;
+}
+
+function extractIdentificator(payload: string): string | null {
+  try {
+    const parsed: QrPayload = JSON.parse(payload);
+    if (typeof parsed.identificator === 'string' && parsed.identificator.trim() !== '') {
+      return parsed.identificator.trim();
+    }
+    return null;
+  } catch {
+    // Резерв: QR с «голым» идентификатором без JSON
+    const text = payload.trim();
+    return text !== '' ? text : null;
+  }
+}
+
 export function TradeScannerScreen({navigation}: Props) {
   const [status, setStatus] = useState<string | null>(null);
 
   const handleScanned = async (payload: string) => {
+    const identificator = extractIdentificator(payload);
+    if (!identificator) {
+      setStatus('В QR нет идентификатора игрока');
+      return;
+    }
     try {
-      const parsed = JSON.parse(payload);
-      if (parsed.t === 'mb_player_auth') {
-        // Это личный QR входа; для торговли нужен выбор партнёра из списка онлайн
-        setStatus('Это ваш личный QR. Для торговли выберите партнёра в списке');
-        return;
-      }
-    } catch {}
-    try {
-      const session = await createTradeSession(Number(payload));
+      const session = await createTradeSession(identificator);
       navigation.replace('TradeRoom', {sessionId: session.id});
     } catch (e: any) {
       setStatus(e?.response?.data?.error ?? 'Не удалось начать сделку');

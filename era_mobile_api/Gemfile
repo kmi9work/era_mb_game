@@ -24,7 +24,7 @@ gem "sidekiq", "~> 7.2"
 gem "googleauth", "~> 1.11"
 gem "httparty"
 
-# QR-идентификаторы: HMAC-подпись на сервере; генерация PNG для печати мастерами
+# PNG QR-кодов для печати бейджей (формат строки — как у era_front /players)
 gem "rqrcode", "~> 2.2"
 
 group :development, :test do

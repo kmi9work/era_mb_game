@@ -3,9 +3,9 @@ import {api} from './client';
 // ─── Лобби (FR-6..FR-9) ─────────────────────────────────────────────────────
 export const getLobby = () => api.get('/api/v1/lobby').then(r => r.data);
 
-// ─── Торговля (FR-11..FR-17) ────────────────────────────────────────────────
-export const createTradeSession = (partnerPlayerId: number) =>
-  api.post('/api/v1/trade_sessions', {partner_player_id: partnerPlayerId}).then(r => r.data);
+// ─── Торговля (FR-11..FR-17): партнёр по identificator из его QR (era_front) ─
+export const createTradeSession = (partnerIdentificator: string) =>
+  api.post('/api/v1/trade_sessions', {partner_identificator: partnerIdentificator}).then(r => r.data);
 
 export const getTradeSession = (id: number) =>
   api.get(`/api/v1/trade_sessions/${id}`).then(r => r.data);

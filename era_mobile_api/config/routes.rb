@@ -44,9 +44,8 @@ Rails.application.routes.draw do
   # ─── Админ-API для era_front (мастера; Basic Auth шлюза + X-Master-Key) ───
   scope "/admin_api", as: :admin_api, defaults: { format: :json } do
     constraints(master_key: /[^\/]+/) do
-      # FR-50
+      # FR-50 (QR генерирует era_front /players из identificator; выпуск/отзыв токенов не нужен)
       get    "/players",                    to: "admin/players#index"
-      post   "/players/:player_id/regen_qr", to: "admin/players#regenerate_qr"
       get    "/players/:player_id/sessions", to: "admin/players#sessions"
       delete "/sessions/:id",               to: "admin/players#destroy_session"
       # FR-51

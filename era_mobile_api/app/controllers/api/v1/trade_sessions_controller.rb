@@ -3,9 +3,10 @@
 module Api::V1
   # Торговля по QR (FR-11..FR-18).
   class TradeSessionsController < BaseController
-    # POST /api/v1/trade_sessions { partner_player_id }
+    # POST /api/v1/trade_sessions { partner_identificator } (QR из era_front)
+    # или { partner_player_id } (legacy)
     def create
-      partner = Shared::Player.find_by(id: params[:partner_player_id])
+      partner = find_partner
       return render json: { error: "Игрок не найден" }, status: :not_found if partner.nil?
       return render json: { error: "Нельзя торговать с самим собой" }, status: :unprocessable_entity if partner.id == current_player.id
       return render json: { error: "Игрок офлайн или занят другой сделкой" }, status: :conflict unless partner_online?(partner)
@@ -89,6 +90,13 @@ module Api::V1
                               .where("initiator_id = ? OR partner_id = ?", current_player.id, current_player.id)
       scope = scope.where(status: [Mb::TradeSession.statuses[:pending], Mb::TradeSession.statuses[:active]]) if live
       scope.first
+    end
+
+    def find_partner
+      ident = params[:partner_identificator].to_s.strip
+      return Shared::Player.find_by(identificator: ident) if ident.present?
+
+      Shared::Player.find_by(id: params[:partner_player_id])
     end
 
     def partner_online?(partner)

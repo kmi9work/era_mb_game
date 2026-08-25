@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.0].define(version: 2026_08_24_090000) do
+ActiveRecord::Schema[7.0].define(version: 2026_08_26_090000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -115,19 +115,6 @@ ActiveRecord::Schema[7.0].define(version: 2026_08_24_090000) do
     t.datetime "updated_at", null: false
     t.index ["owner_type", "owner_id", "card_kind", "status"], name: "idx_mb_cards_owner_kind_status"
     t.index ["owner_type", "owner_id", "status"], name: "index_mb_cards_on_owner_type_and_owner_id_and_status"
-  end
-
-  create_table "mb_id_tokens", force: :cascade do |t|
-    t.bigint "player_id", null: false
-    t.string "public_id", null: false
-    t.string "secret_digest", null: false
-    t.string "payload_digest", null: false
-    t.integer "status", default: 0, null: false
-    t.datetime "revoked_at"
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
-    t.index ["player_id"], name: "index_mb_id_tokens_on_player_id"
-    t.index ["public_id"], name: "index_mb_id_tokens_on_public_id", unique: true
   end
 
   create_table "mb_notifications", force: :cascade do |t|

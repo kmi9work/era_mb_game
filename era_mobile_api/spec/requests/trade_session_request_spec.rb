@@ -8,10 +8,8 @@ RSpec.describe "Trade sessions API", type: :request do
   let(:guild_b) { create(:guild) }
   let(:player_a) { create(:player, guild: guild_a) }
   let(:player_b) { create(:player, guild: guild_b) }
-  let!(:token_a) { Mb::IdToken.issue_for!(player_a) }
-  let!(:token_b) { Mb::IdToken.issue_for!(player_b) }
-  let(:auth_a) { AuthService.login(qr_string: token_a.qr_string) }
-  let(:auth_b) { AuthService.login(qr_string: token_b.qr_string) }
+  let(:auth_a) { AuthService.login(qr_string: QrStringBuilder.build(player_a)) }
+  let(:auth_b) { AuthService.login(qr_string: QrStringBuilder.build(player_b)) }
 
   def seed_gold(guild, count)
     item = Shared::ResourceItem.find_or_initialize_by(economic_subject_type: "Guild",

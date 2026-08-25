@@ -4,11 +4,14 @@ require "rails_helper"
 
 RSpec.describe AuthService do
   let(:player) { create(:player) }
-  let!(:token) { Mb::IdToken.issue_for!(player) }
+
+  def front_qr(p)
+    QrStringBuilder.build(p)
+  end
 
   describe "#login" do
-    it "создаёт сессию по валидному QR (FR-2)" do
-      result = described_class.login(qr_string: token.qr_string, device_info: "Android/Pixel")
+    it "создаёт сессию по QR из era_front (FR-2)" do
+      result = described_class.login(qr_string: front_qr(player), device_info: "Android/Pixel")
 
       expect(result.ok).to be(true)
       expect(result.player.id).to eq(player.id)
@@ -18,24 +21,21 @@ RSpec.describe AuthService do
       expect(found_player.id).to eq(player.id)
     end
 
-    it "отклоняет подделанный HMAC" do
-      payload = JSON.parse(token.qr_string)
-      payload["s"] = "deadbeef" * 8
-      result = described_class.login(qr_string: JSON.generate(payload))
-
-      expect(result.ok).to be(false)
-      expect(result.error).to match(/подпись/i)
+    it "логинит по «голому» идентификатору без JSON" do
+      result = described_class.login(qr_string: " #{player.identificator} ")
+      expect(result.ok).to be(true)
+      expect(result.player.id).to eq(player.id)
     end
 
-    it "отклоняет случайный UUID (подделка невозможна без ключа)" do
-      payload = { t: "mb_player_auth", pid: player.id, u: SecureRandom.uuid, s: SecureRandom.hex(32) }
-      result = described_class.login(qr_string: JSON.generate(payload))
+    it "отклоняет неизвестный identificator" do
+      result = described_class.login(qr_string: front_qr(build(:player)))
       expect(result.ok).to be(false)
+      expect(result.error).to match(/мастеру/i)
     end
 
     it "новый вход ревокует прежнюю сессию (FR-4)" do
-      first = described_class.login(qr_string: token.qr_string)
-      second = described_class.login(qr_string: token.qr_string)
+      first = described_class.login(qr_string: front_qr(player))
+      second = described_class.login(qr_string: front_qr(player))
 
       expect(first.token).not_to eq(second.token)
 
@@ -48,14 +48,8 @@ RSpec.describe AuthService do
       expect(active_count).to eq(1)
     end
 
-    it "не пускает игрока с отозванным QR" do
-      token.update!(status: :revoked)
-      result = described_class.login(qr_string: token.qr_string)
-      expect(result.ok).to be(false)
-    end
-
-    it "ошибка на невалидном JSON" do
-      result = described_class.login(qr_string: "не-json")
+    it "ошибка на невалидном JSON без идентификатора" do
+      result = described_class.login(qr_string: "{\"type\":\"bad\"}")
       expect(result.ok).to be(false)
     end
   end

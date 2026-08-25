@@ -12,21 +12,12 @@ module Admin
           identificator: p.identificator,
           guild_id: p.guild_id,
           active_session: p.mb_sessions.active.select(:id, :device_info, :last_seen_at).last&.as_json,
-          qr_issued: Mb::IdToken.active_tokens.exists?(player_id: p.id)
+          # QR существует всегда: era_front /players генерирует его из identificator.
+          qr_issued: p.identificator.present?
         }
       end
-      render json: { players: players }
-    end
 
-    # POST /admin_api/players/:player_id/regen_qr — перегенерация QR (старый отзывается)
-    def regenerate_qr
-      player = Shared::Player.find(params[:player_id])
-      token = Mb::IdToken.issue_for!(player)
-      render json: {
-        qr_string: token.qr_string,
-        payload_digest: token.payload_digest,
-        public_id: token.public_id
-      }
+      render json: { players: players }
     end
 
     # GET /admin_api/players/:player_id/sessions — активные устройства/сессии
