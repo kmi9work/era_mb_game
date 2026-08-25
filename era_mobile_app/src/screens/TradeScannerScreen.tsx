@@ -1,13 +1,14 @@
 import React, {useState} from 'react';
-import {View, Text, StyleSheet} from 'react-native';
+import {StyleSheet} from 'react-native';
 import {StackNavigationProp} from '@react-navigation/stack';
 import {createTradeSession} from '../api/endpoints';
-import {colors, typography, buttons} from '../theme';
+import {QrScannerScreen} from './QrScannerScreen';
+import {typography} from '../theme';
 
 type Props = {navigation: StackNavigationProp<any>};
 
 /**
- * FR-11: скан QR игрока B → создание торговой сессии.
+ * FR-11: скан QR игрока B -> создание торговой сессии.
  * Отказ с причиной: «игрок офлайн», «занят другой сделкой» (сервер).
  */
 export function TradeScannerScreen({navigation}: Props) {
@@ -32,16 +33,30 @@ export function TradeScannerScreen({navigation}: Props) {
 
   return (
     <View style={styles.root}>
-      <Text style={typography.body}>Наведите камеру на QR партнёра</Text>
-      {/* Камера: react-native-vision-camera CodeScanner (переиспользуем опыт era_native).
-          Заглушка до сборки нативных модулей: */}
-      <Text style={[typography.dim, {marginTop: 24}]}>Камера активируется после нативной сборки</Text>
-      {status ? <Text style={styles.status}>{status}</Text> : null}
+      <QrScannerScreen
+        title="Наведите камеру на QR партнёра"
+        onScan={handleScanned}
+        onClose={() => navigation.goBack()}
+      />
+      {status ? (
+        <Text style={styles.statusOverlay}>{status}</Text>
+      ) : null}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  root: {flex: 1, backgroundColor: colors.background, alignItems: 'center', justifyContent: 'center', padding: 24},
-  status: {...typography.body, color: colors.danger, marginTop: 16, textAlign: 'center'},
+  root: {flex: 1, backgroundColor: '#000'},
+  statusOverlay: {
+    ...typography.body,
+    position: 'absolute',
+    bottom: 120,
+    left: 24,
+    right: 24,
+    color: '#ff6b6b',
+    textAlign: 'center',
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    padding: 12,
+    borderRadius: 8,
+  },
 });
