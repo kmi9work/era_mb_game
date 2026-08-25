@@ -81,10 +81,11 @@ jobs:
 
       - name: Health check
         run: |
-          for i in 1 2 3 4 5; do
-            CODE=$(curl -s --max-time 5 http://127.0.0.1:3001/api/v1/lobby -o /dev/null -w "%{http_code}" || true)
+          for i in $(seq 1 20); do
+            CODE=$(curl -s --max-time 5 "http://[::1]:3001/api/v1/lobby" -o /dev/null -w "%{http_code}" || true)
+            [ "$CODE" = "000" ] && CODE=$(curl -s --max-time 5 http://127.0.0.1:3001/api/v1/lobby -o /dev/null -w "%{http_code}" || true)
             if [ "$CODE" = "401" ] || [ "$CODE" = "200" ]; then
-              echo "health OK ($CODE)"
+              echo "health OK ($CODE) on attempt $i"
               exit 0
             fi
             echo "attempt $i: code=$CODE"; sleep 3
