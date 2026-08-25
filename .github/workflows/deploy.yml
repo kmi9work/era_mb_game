@@ -69,10 +69,12 @@ jobs:
       - name: Restart services
         run: |
           ssh -i ~/.ssh/id_ed25519 deploy@62.173.148.168 '
-            sudo -n systemctl restart era-mb-game era-mb-game-sidekiq || {
-              echo "::error::нет NOPASSWD на systemctl era-mb-game* — проверь sudoers.d";
-              exit 1;
-            }
+            FAIL=0
+            sudo -n systemctl restart era-mb-game || FAIL=1
+            # sidekiq может быть не разрешён в sudoers.d — не роняем деплой, но предупреждаем
+            sudo -n systemctl restart era-mb-game-sidekiq 2>/dev/null \
+              || echo "::warning::systemctl restart era-mb-game-sidekiq без NOPASSWD — sidekiq не перезапущен"
+            [ "$FAIL" = "0" ] || { echo "::error::restart era-mb-game failed"; exit 1; }
             sleep 2
             systemctl is-active era-mb-game && systemctl is-active era-mb-game-sidekiq'
 
