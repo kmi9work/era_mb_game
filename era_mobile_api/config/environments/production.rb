@@ -68,6 +68,12 @@ Rails.application.configure do
   # Don't log any deprecations.
   config.active_support.report_deprecations = false
 
+  # Era mobile: разрешаем WebSocket-подключения приложения и RN-клиентов
+  config.action_cable.allowed_request_origins = [
+    %r{https://era-mb-game\.igroteh\.su},
+    %r{http://era-mb-game\.igroteh\.su}
+  ]
+
   # Use default logging formatter so that PID and timestamp are not suppressed.
   config.log_formatter = ::Logger::Formatter.new
 
@@ -84,9 +90,3 @@ Rails.application.configure do
   # Do not dump schema after migrations.
   config.active_record.dump_schema_after_migration = false
 end
-
-# Era mobile: разрешаем WebSocket-подключения приложения и RN-клиентов
-config.action_cable.allowed_request_origins = [
-  %r{https://era-mb-game\.igroteh\.su},
-  %r{http://era-mb-game\.igroteh\.su}
-]
