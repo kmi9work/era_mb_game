@@ -56,6 +56,15 @@ bundle exec sidekiq -C config/sidekiq.yml        # требует redis://localh
 
 Печать QR на бейджи: `GET /qr_codes` (список), `GET /qr_codes/:player_id.png`.
 
+### Формат QR (единый с era_front)
+
+Источник кодов — страница era_front `/players`: QR генерируется в браузере из
+`{"type":"player_auth","identificator":"<код>","player_name":...,"generated_at":...}`.
+Вход (`POST /auth/login`) и торговля (`partner_identificator`) проверяют
+identificator по общей таблице players; подписные HMAC-токены выпилены
+(миграция 20260826090000). Смена identificator мастером в era_front мгновенно
+делает старый бейдж недействительным.
+
 ## Мобильное приложение
 
 ```bash

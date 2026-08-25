@@ -31,6 +31,9 @@ GitHub (main) ──push──▶ GitHub Actions
    сиды написаны через find_or_create_by и безопасны при повторе.
 6. **База**: отдельная `era_mb_game_production` (владелец deploy). Живая база настольной
    игры `eraofchange_production` деплоем мобильной игры не трогается.
+   ОБНОВЛЕНИЕ 2026-08-25: прод переключён на общую базу
+   `eraofchange_production` (ERA_MB_DATABASE в shared/era_mb_game.env) — вход по QR из
+   era_front требует общей таблицы players. Миграции создают только таблицы mb_*.
 7. **Секреты**: только через GitHub Secrets (DEPLOY_SSH_KEY) и серверный env-файл
    `/opt/era/era_mb_game/shared/era_mb_game.env`. В git не попадают.
 8. **Рестарт сервисов** требует пароль sudo deploy — он передаётся в CI из секрета
