@@ -1,7 +1,6 @@
 name: deploy-api
 
 # CD: деплой era_mobile_api на epoha-сервер при пуше в main (только серверный код).
-# Ручной запуск (workflow_dispatch) позволяет задеплоить любую ветку/тег.
 on:
   push:
     branches: [main]
@@ -28,75 +27,71 @@ jobs:
           printf '%s\n' "${{ secrets.DEPLOY_SSH_KEY }}" | tr -d '\r' > ~/.ssh/id_ed25519
           chmod 600 ~/.ssh/id_ed25519
           ssh-keyscan -H 62.173.148.168 >> ~/.ssh/known_hosts 2>/dev/null || true
-          # Диагностика формата (не роняет шаг): первые строки ключа и fingerprint
-          head -1 ~/.ssh/id_ed25519 | sed 's/\(-----BEGIN [A-Z ]*\).*/\1.../'
           if ! ssh-keygen -yf ~/.ssh/id_ed25519 >/dev/null 2>&1; then
-            echo "::error::DEPLOY_SSH_KEY невалиден: секрет должен содержать приватный ключ OpenSSH целиком (-----BEGIN OPENSSH PRIVATE KEY----- ... -----END OPENSSH PRIVATE KEY-----), а не публичный (.pub) и не обрезанный"
-            head -c 60 ~/.ssh/id_ed25519 | sed 's/$/.../' >&2
+            echo "::error::DEPLOY_SSH_KEY невалиден: нужен приватный ключ OpenSSH целиком"
             exit 1
           fi
           echo "KEY FORMAT OK: $(ssh-keygen -lf ~/.ssh/id_ed25519)"
 
+      # STAMP/REL вычисляются НА СЕРВЕРЕ внутри ssh-сессии (GITHUB_ENV туда не дотягивается)
       - name: Prepare release on server
         run: |
-          STAMP="$(date +%Y%m%d%H%M%S)-${GITHUB_SHA::7}"
-          echo "RELEASE=$STAMP" >> "$GITHUB_ENV"
-          ssh -v -i ~/.ssh/id_ed25519 deploy@62.173.148.168 "set -e;             APP=/opt/era/era_mb_game;             cd \$APP/repo || exit 1;             git fetch origin --prune || exit 1;             git checkout -q ${GITHUB_SHA} || exit 1;             REL=\$APP/releases/\$STAMP;             mkdir -p \$REL;             rsync -a --delete --exclude .git --exclude node_modules \$APP/repo/era_mobile_api/ \$REL/ || exit 1;             ln -sfn \$APP/shared/log \$REL/log;             ln -sfn \$APP/shared/storage \$REL/storage;             ln -sfn \$APP/shared/bundle \$REL/vendor_bundle;             echo prepared: \$STAMP"
-
+          ssh -i ~/.ssh/id_ed25519 deploy@62.173.148.168 'set -e
+            APP=/opt/era/era_mb_game
+            cd $APP/repo || exit 1
+            git fetch origin --prune || exit 1
+            git checkout -q '"${GITHUB_SHA}"' || exit 1
+            REL=$APP/releases/$(date +%Y%m%d%H%M%S)-${GITHUB_SHA::7}
+            mkdir -p "$REL"
+            rsync -a --delete --exclude .git --exclude node_modules $APP/repo/era_mobile_api/ "$REL/" || exit 1
+            ln -sfn $APP/shared/log "$REL/log"
+            ln -sfn $APP/shared/storage "$REL/storage"
+            ln -sfn $APP/shared/bundle "$REL/vendor_bundle"
+            printf %s "$REL" > /tmp/era_mb_current_rel
+            echo "prepared: $REL"'
 
       - name: Activate release (bundle, migrate, seed, switch)
         run: |
-          APP=/opt/era/era_mb_game
-          ssh -i ~/.ssh/id_ed25519 deploy@62.173.148.168 "
-            set -e
+          REL=$(ssh -i ~/.ssh/id_ed25519 deploy@62.173.148.168 'cat /tmp/era_mb_current_rel')
+          echo "activating: $REL"
+          ssh -i ~/.ssh/id_ed25519 deploy@62.173.148.168 "set -e
             export PATH=\"\$HOME/.rbenv/bin:\$PATH\"
             eval \"\$(rbenv init -)\"
-            cd $APP/releases/$RELEASE
-
-            bundle config set --local path $APP/shared/bundle
+            cd '$REL' || exit 1
+            bundle config set --local path /opt/era/era_mb_game/shared/bundle
             bundle install --quiet
-
             bin/rails db:migrate
             bin/rails db:seed
+            ln -sfn '$REL' /opt/era/era_mb_game/current
+            echo activated: '$REL'"
 
-            ln -sfn $APP/releases/$RELEASE $APP/current
-            echo activated: $RELEASE
-          "
-
-      - name: Restart services (sudoers.d NOPASSWD для юнитов приложения)
+      - name: Restart services
         run: |
-          ssh -i ~/.ssh/id_ed25519 deploy@62.173.148.168 "
-            if ! sudo -n systemctl restart era-mb-game 2>/dev/null; then
-              echo 'deploy' | sudo -S sh -c 'echo \"deploy ALL=(ALL) NOPASSWD: /usr/bin/systemctl restart era-mb-game*, /usr/bin/systemctl restart era-mb-game-sidekiq*\" > /etc/sudoers.d/era-mb-game-deploy' 2>/dev/null || true
-              echo 'Нужен разовый ручной шаг: sudo visudo -f /etc/sudoers.d/era-mb-game-deploy'
-              exit 1
-            fi
-            sudo systemctl restart era-mb-game era-mb-game-sidekiq
+          ssh -i ~/.ssh/id_ed25519 deploy@62.173.148.168 '
+            sudo -n systemctl restart era-mb-game era-mb-game-sidekiq || {
+              echo "::error::нет NOPASSWD на systemctl era-mb-game* — проверь sudoers.d";
+              exit 1;
+            }
             sleep 2
-            systemctl is-active era-mb-game && systemctl is-active era-mb-game-sidekiq
-          "
+            systemctl is-active era-mb-game && systemctl is-active era-mb-game-sidekiq'
 
       - name: Health check
         run: |
           for i in 1 2 3 4 5; do
-            CODE=$(curl -s --max-time 5 http://127.0.0.1:3001/up -o /dev/null -w "%{http_code}" || true)
-            # /up есть в Rails 7.1+; для 7.0 пингуем корень (ожидаем 404/401, но не connection refused)
-            if [ "$CODE" = "200" ] || [ "$CODE" = "404" ] || [ "$CODE" = "401" ]; then
+            CODE=$(curl -s --max-time 5 http://127.0.0.1:3001/api/v1/lobby -o /dev/null -w "%{http_code}" || true)
+            if [ "$CODE" = "401" ] || [ "$CODE" = "200" ]; then
               echo "health OK ($CODE)"
               exit 0
             fi
-            echo "attempt $i: code=$CODE, retry..."
-            sleep 3
+            echo "attempt $i: code=$CODE"; sleep 3
           done
-          echo "health check failed"
-          exit 1
+          echo "::error::health check failed"; exit 1
 
       - name: Rollback on failure
         if: failure()
         run: |
-          ssh -i ~/.ssh/id_ed25519 deploy@62.173.148.168 "
-            PREV=\$(ls -dt /opt/era/era_mb_game/releases/* | sed -n 2p)
-            [ -n \"\$PREV\" ] && ln -sfn \"\$PREV\" /opt/era/era_mb_game/current
+          ssh -i ~/.ssh/id_ed25519 deploy@62.173.148.168 '
+            PREV=$(ls -dt /opt/era/era_mb_game/releases/* | sed -n 2p)
+            [ -n "$PREV" ] && ln -sfn "$PREV" /opt/era/era_mb_game/current
             sudo -n systemctl restart era-mb-game era-mb-game-sidekiq || true
-            echo rolled back to: \$PREV
-          " || true
+            echo rolled back to: $PREV' || true
