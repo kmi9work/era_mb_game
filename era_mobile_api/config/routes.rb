@@ -1,4 +1,4 @@
-# Era Mobile API routes
+# Era Mobile API routes (deploy trigger)
 Rails.application.routes.draw do
   mount ActionCable.server => "/cable"
 
