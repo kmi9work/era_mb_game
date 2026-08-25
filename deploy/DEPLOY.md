@@ -92,7 +92,22 @@ epoha back0 занимает 127.0.0.1:3000 — мобильный API живё�
 
 ### Известные ограничения
 
-- sudo у deploy NOPASSWD только на `systemctl * passenger`; остальные команды sudo
-  запрашивают пароль (в CI — из секрета DEPLOY_PASSWORD).
-- DNS era-mb-game.igroteh.su изначально указывал на 62.173.138.248; исправлен на
-  62.173.148.168 (TTL 1800 — до часа на распространение).
+- sudo у deploy: NOPASSWD на `systemctl restart/start/stop/status era-mb-game*`
+  (/etc/sudoers.d/era-mb-game-deploy), nginx -t/reload/restart, certbot.
+  `era-mb-game-sidekiq` в sudoers НЕ вписан — CI рестартит его с warning;
+  чтобы убрать warning, добавь юнит в sudoers.d строку
+  `/usr/bin/systemctl restart era-mb-game-sidekiq*`.
+- Health-check выполняется НА СЕРВЕРЕ через ssh (localhost раннера не имеет доступа).
+  Puma грузится ~10-15с: 20 попыток x 3с хватает.
+- puma.rb читает PORT (не PUMA_PORT); 3000 занят epoha back0 → наш порт 3001.
+- В release обязателен симлинк tmp/pids -> shared/pids (puma пишет pid при старте,
+  иначе падает Errno::ENOENT) — создаётся шагом Prepare автоматически.
+- GITHUB_ENV-переменные не пробрасываются внутрь ssh-сессий; REL передаётся через
+  /tmp/era_mb_current_rel на сервере.
+- ActionCable требует allowed_request_origins для https://era-mb-game.igroteh.su
+  (production.rb) — иначе WS-рукопожатие отклоняется 404.
+
+## Статус (2026-08-25): deploy-api GREEN
+
+Полный цикл push→production работает: release, bundle, migrate, seed, switch,
+restart, health-check (401 от API = ожидаемый ответ без токена), автооткат при провале.
