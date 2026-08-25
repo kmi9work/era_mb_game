@@ -79,6 +79,7 @@ android {
 
     namespace "com.era_mobile_app"
     defaultConfig {
+        manifestPlaceholders = [usesCleartextTraffic: "false"]
         applicationId "com.era_mobile_app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
@@ -116,6 +117,7 @@ android {
     }
     buildTypes {
         debug {
+            manifestPlaceholders = [usesCleartextTraffic: "true"]
             signingConfig signingConfigs.debug
         }
         release {
