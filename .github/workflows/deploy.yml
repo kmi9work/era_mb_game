@@ -41,7 +41,7 @@ jobs:
             cd $APP/repo || exit 1
             git fetch origin --prune || exit 1
             git checkout -q '"${GITHUB_SHA}"' || exit 1
-            REL=$APP/releases/$(date +%Y%m%d%H%M%S)-${GITHUB_SHA::7}
+            REL=$APP/releases/$(date +%Y%m%d%H%M%S)-$(git rev-parse --short HEAD)
             mkdir -p "$REL"
             rsync -a --delete --exclude .git --exclude node_modules $APP/repo/era_mobile_api/ "$REL/" || exit 1
             ln -sfn $APP/shared/log "$REL/log"
